@@ -4,10 +4,10 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
@@ -15,14 +15,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusState
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -31,10 +30,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import coil.request.ImageRequest
-import com.google.accompanist.coil.CoilImage
 import xyz.teamgravity.pokedex.R
 import xyz.teamgravity.pokedex.arch.viewmodel.PokemonListViewModel
+import xyz.teamgravity.pokedex.helper.util.loadPicture
 import xyz.teamgravity.pokedex.model.PokedexModel
 import xyz.teamgravity.pokedex.ui.theme.RobotoCondensed
 
@@ -61,6 +59,8 @@ fun PokemonListScreen(
                     .fillMaxWidth()
                     .padding(16.dp)
             )
+            Spacer(modifier = Modifier.height(16.dp))
+            PokemonList(navController = navController)
         }
     }
 }
@@ -124,33 +124,31 @@ fun PokedexCard(
                 navController.navigate("pokemon_detail_screen/${dominantColor.toArgb()}/${entry.name}")
             }
     ) {
-        CoilImage(
-            request = ImageRequest.Builder(LocalContext.current)
-                .data(entry.imageUrl)
-                .target {
-                    viewmodel.calculateDominateColor(it) { color ->
-                        dominantColor = color
-                    }
-                }.build(),
-            contentDescription = "raheem",
-            fadeIn = true,
-            modifier = Modifier
-                .size(120.dp)
-                .align(Alignment.Center)
-        ) {
-            CircularProgressIndicator(
-                color = MaterialTheme.colors.primary,
-                modifier = Modifier.scale(0.5f)
+        Column {
+            val image = loadPicture(url = entry.imageUrl, defaultImageRes = R.drawable.ic_international_pokemon)
+
+            image.value?.let {
+                viewmodel.calculateDominateColor(it) { color ->
+                    println("debug: dominat color found $color")
+                    dominantColor = color
+                }
+
+                Image(
+                    bitmap = it.asImageBitmap(),
+                    contentDescription = "raheem",
+                    modifier = Modifier
+                        .size(120.dp)
+                        .align(Alignment.CenterHorizontally)
+                )
+            }
+            Text(
+                text = entry.name,
+                fontFamily = RobotoCondensed,
+                fontSize = 20.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
             )
         }
-
-        Text(
-            text = entry.name,
-            fontFamily = RobotoCondensed,
-            fontSize = 20.sp,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
-        )
     }
 }
 
@@ -179,5 +177,27 @@ fun PokedexRow(
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
+    }
+}
+
+@Composable
+fun PokemonList(
+    navController: NavController,
+    viewmodel: PokemonListViewModel = hiltViewModel()
+) {
+    val pokemonList by remember { viewmodel.pokemonList }
+    val endReached by remember { viewmodel.endReached }
+    val loadError by remember { viewmodel.loadError }
+    val isLoading by remember { viewmodel.isLoading }
+
+    LazyColumn(contentPadding = PaddingValues(16.dp)) {
+        val itemCount = if (pokemonList.size % 2 == 0) pokemonList.size / 2 else pokemonList.size / 2 + 1
+
+        items(itemCount) {
+            if (it >= itemCount - 1 && !endReached) {
+                viewmodel.loadPokemonPaginated()
+            }
+            PokedexRow(rowIndex = it, entries = pokemonList, navController = navController)
+        }
     }
 }
