@@ -14,13 +14,4 @@
         <!-- Customize your theme here. -->
         <item name="android:forceDarkAllowed" tools:targetApi="q">false</item>
     </style>
-
-    <style name="Theme.Pokedex.NoActionBar">
-        <item name="windowActionBar">false</item>
-        <item name="windowNoTitle">true</item>
-    </style>
-
-    <style name="Theme.Pokedex.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
-
-    <style name="Theme.Pokedex.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
 </resources>
